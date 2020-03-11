@@ -1,0 +1,220 @@
+1. 创建流量策略
+{
+    "name":"SDWAN_tp_remarking",
+    "flows":[
+        {
+            "name":"gold_classfier_test_gold_behavior_test",
+            "classfier":{
+                "name":"gold_classfier_test",
+                "dscpValues":"30_50_",
+                "type":"dscp"
+            },
+            "behavior":{
+                "name":"gold_behavior_test",
+                "serviceClass":"ef",
+                "color":"green",
+                "isRemark":true,
+                "remarkDscpValue":60,
+                "car":{
+                    "carServiceClassList":[
+                        {
+                            "name":"green_color",
+                            "color":"green",
+                            "isPass":true,
+                            "remarkColor":"yellow",
+                            "remarkServiceClass":"af1"
+                        },
+                        {
+                            "name":"yellow_color",
+                            "color":"yellow",
+                            "isPass":true,
+                            "remarkColor":"red",
+                            "remarkServiceClass":"be"
+                        },
+                        {
+                            "name":"red_color",
+                            "color":"red",
+                            "isPass":false,
+                            "remarkColor":"red",
+                            "remarkServiceClass":"be"
+                        }
+                    ],
+                    "name":"gold_speed",
+                    "cbs":6000,
+                    "cir":5000,
+                    "pbs":1122000,
+                    "pir":935000,
+                    "serviceClass":"green"
+                }
+            }
+        },
+        {
+            "name":"silver_classfier_test_silver_behavior_test",
+            "classfier":{
+                "acl":[
+                    {
+                        "destIp":"2.2.2.0/24",
+                        "destPort":"80",
+                        "protocol":"6",
+                        "srcIp":"1.1.1.0/24",
+                        "srcPort":"2552"
+                    }
+                ],
+                "name":"silver_classfier_test",
+                "type":"acl"
+            },
+            "behavior":{
+                "name":"silver_behavior_test",
+                "serviceClass":"ef",
+                "color":"yellow",
+                "isRemark":false,
+                "car":{
+                    "carServiceClassList":[
+                        {
+                            "name":"green_color",
+                            "color":"green",
+                            "isPass":true,
+                            "remarkColor":"yellow",
+                            "remarkServiceClass":"af1"
+                        },
+                        {
+                            "name":"yellow_color",
+                            "color":"yellow",
+                            "isPass":true,
+                            "remarkColor":"red",
+                            "remarkServiceClass":"be"
+                        },
+                        {
+                            "name":"red_color",
+                            "color":"red",
+                            "isPass":false,
+                            "remarkColor":"red",
+                            "remarkServiceClass":"be"
+                        }
+                    ],
+                    "name":"silver_speed",
+                    "cbs":6000,
+                    "cir":5000,
+                    "pbs":1122000,
+                    "pir":935000,
+                    "serviceClass":"yellow"
+                }
+            }
+        },
+        {
+            "name":"bronze_classfier_test_bronze_behavior_test",
+            "classfier":{
+                "serviceClasses":"be_",
+                "name":"bronze_classfier_test",
+                "type":"serviceClass"
+            },
+            "behavior":{
+                "name":"bronze_behavior_test",
+                "serviceClass":"be",
+                "color":"red",
+                "isRemark":false,
+                "car":{
+                    "carServiceClassList":[
+                        {
+                            "name":"green_color",
+                            "color":"green",
+                            "isPass":true,
+                            "remarkColor":"yellow",
+                            "remarkServiceClass":"af1"
+                        },
+                        {
+                            "name":"yellow_color",
+                            "color":"yellow",
+                            "isPass":true,
+                            "remarkColor":"red",
+                            "remarkServiceClass":"be"
+                        },
+                        {
+                            "name":"red_color",
+                            "color":"red",
+                            "isPass":false,
+                            "remarkColor":"red",
+                            "remarkServiceClass":"be"
+                        }
+                    ],
+                    "name":"bronze_speed",
+                    "cbs":6000,
+                    "cir":5000,
+                    "pbs":1122000,
+                    "pir":935000,
+                    "serviceClass":"red"
+                }
+            }
+        }
+    ]
+}
+
+2. 删除流量策略
+{
+  "name": "SDWAN_tp_remarking"
+}
+
+3. 编辑带流量策略的L3VPN
+
+{
+	"name": "sdnwan",
+	"type": "fullmesh",
+	"vrfConfigList": [
+		{
+			"accessNodeList": [
+				{
+					"accessInterfaceIp": "20.7.4.1/30",
+					"accessInterfaceName": "GigabitEthernet3/0/4.2001",
+					"accessVlanId": "2001",
+					"peName": "PE2",
+					"accessRouterInfo": "{\"staticRoute\": [{\"network\": \"192.168.17.0/24\",\"nextHop\": \"20.7.4.2\"},{\"network\": \"192.168.18.0/24\",\"nextHop\": \"20.7.4.2\"}]}",
+					"inboundTrafficPolicyName": "SDWAN_tp_remarking",
+					"outboundTrafficPolicyName": "SDWAN_tp_remarking"
+				}
+			],
+			"name": "sdnwan",
+			"peName": "PE2",
+			"teType": "UNKNOWN",
+			"useExistedTunnel": false,
+			"description": "this is sdnwan",
+			"enableHotStandby": false
+		},
+		{
+			"accessNodeList": [
+				{
+					"accessInterfaceIp": "20.8.4.1/30",
+					"accessInterfaceName": "GigabitEthernet3/0/4.2002",
+					"accessVlanId": "2002",
+					"peName": "PE3",
+					"inboundTrafficPolicyName": "SDWAN_tp_remarking",
+					"outboundTrafficPolicyName": "SDWAN_tp_remarking"
+				}
+			],
+			"name": "sdnwan",
+			"peName": "PE3",
+			"teType": "UNKNOWN",
+			"useExistedTunnel": false,
+			"description": "nothing",
+			"enableHotStandby": false
+		}
+	]
+}
+
+4. 删除L3VPN
+{
+	"name": "sdnwan",
+	"isDeletedTunnel": true,
+	"vrfConfigList": [
+		{
+			"name": "sdnwan"
+		},
+		{
+			"name": "sdnwan"
+		}
+	]
+}
+
+
+
+
+

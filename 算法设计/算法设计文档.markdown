@@ -1,0 +1,143 @@
+###算法平台设计方案
+
+#### 总体流程
+
+总体流程如下图所示：微服务A为算法平台，负责发布算法接口，并提供算法注册和删除的接口；微服务B和C为算法实现的微服务，负责实现微服务A所发布的算法接口，并在微服务启动过程中，调用微服务A的注册算法接口向微服务A进行注册，在停止微服务时，调用微服务A的删除算法接口删除自己注册的算法。
+![总体流程](./img/总体流程.png)
+
+#### 算法平台的实现
+#####1. 发布算法接口
+
+#####2. 注册算法
+
+	注册算法： POST /algorithm/registered
+	[
+	    {
+		"author": "sjk",
+		"enable": false,
+		"method": "POST",
+		"name": "algorithm1",
+		"url": "/algorithmRegister/algorithm1/v1.2",
+		"version": "v1.2"
+	    },
+	    {
+		"author": "sjk",
+		"enable": false,
+		"method": "POST",
+		"name": "algorithm2",
+		"url": "/algorithmRegister/algorithm2/v1.0",
+		"version": "v1.0"
+	    }
+	]
+
+其中，name为算法平台发布的算法名称，不能用其他的算法名称； url为调用算法实现的url，url为算法表的key值，需要唯一；method为调用的方法，值为GET或者POST； 
+
+
+#####3. 删除算法接口
+
+	删除算法接口： POST /algorithm/delete
+	[
+  	    "/algorithmRegister/algorithm1/v1.0",
+	    "/algorithmRegister/algorithm2/v1.0"		
+	]
+
+删除算法接口需要指定接口的url，url为算法表的key，需保证url唯一；
+
+
+#####4. 提供选择算法的界面
+
+##### 微服务BC的实现
+#####1. 实现算法平台发布的接口
+#####2. 算法的注册与删除
+
+注册与删除算法示例：
+	
+    package org.pml.algorithmtest;
+    
+    import com.alibaba.fastjson.JSONArray;
+    import lombok.extern.slf4j.Slf4j;
+    import org.apache.http.HttpEntity;
+    import org.apache.http.HttpResponse;
+    import org.apache.http.client.methods.HttpPost;
+    import org.apache.http.entity.ContentType;
+    import org.apache.http.entity.StringEntity;
+    import org.apache.http.impl.client.CloseableHttpClient;
+    import org.apache.http.impl.client.HttpClients;
+    import org.pml.model.Algorithm;
+    import org.springframework.http.MediaType;
+    import org.springframework.validation.annotation.Validated;
+    import org.springframework.web.bind.annotation.RequestMapping;
+    import org.springframework.web.bind.annotation.RestController;
+    
+    import javax.annotation.PostConstruct;
+    import javax.annotation.PreDestroy;
+    import java.io.BufferedReader;
+    import java.io.IOException;
+    import java.io.InputStreamReader;
+    import java.util.ArrayList;
+    import java.util.List;
+    import java.util.stream.Collectors;
+    
+    
+    @RequestMapping(value = "/algorithmRegister", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @Validated
+    @Slf4j
+    @RestController(value = "algorithmRegister")
+    public class AlgorithmRegister {
+        /**
+         * 将微服务提供的算法实现注册到算法服务中心
+         */
+        @PostConstruct // 该注解保证在微服务启动后调用
+        public void registered() {
+            log.info("registered start");
+    
+            Algorithm algorithm = getAlgorithm();
+            List<Algorithm>  algorithms = new ArrayList<>();
+            algorithms.add(algorithm);
+            StringEntity entity = new StringEntity(JSONArray.toJSONString(algorithms), ContentType.APPLICATION_JSON);
+    
+            String url = "http://localhost:8081/bbc/algorithm/registered";
+            doPost(url, entity);
+        }
+    
+        @PreDestroy // 此注解保证在停止微服务时调用该方法
+        public void delete() {
+            log.info("delete start");
+            List<String> urls = new ArrayList<>();
+            urls.add("/algorithmRegister/algorithm1/v1.0");
+    
+            String deleteUrl = "http://localhost:8081/bbc/algorithm/delete";
+            StringEntity entity = new StringEntity(JSONArray.toJSONString(urls), ContentType.APPLICATION_JSON);
+            doPost(deleteUrl, entity);
+        }
+    
+        private void doPost(String url, StringEntity entity) {
+            HttpPost httpPost = new HttpPost(url);
+            httpPost.setEntity(entity);
+    
+            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+                HttpResponse execute = httpClient.execute(httpPost);
+                HttpEntity returnEntity = execute.getEntity();
+                log.info("doPost returnEntity is {}", returnEntity);
+                String result = new BufferedReader(new InputStreamReader(returnEntity.getContent()))
+                        .lines().collect(Collectors.joining("\n"));
+                log.info("doPost returnEntity is {}", result);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    
+        private Algorithm getAlgorithm() {
+            Algorithm algorithm = new Algorithm();
+            algorithm.setName("algorithm1");
+            algorithm.setAuthor("sjk");
+            algorithm.setUrl("/algorithmRegister/algorithm1/v1.0");
+            algorithm.setVersion("v1.0");
+            algorithm.setMethod("POST");
+            return algorithm;
+        }
+    }
+
+
+
+
